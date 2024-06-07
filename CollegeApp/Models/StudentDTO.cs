@@ -1,25 +1,45 @@
-﻿using Microsoft.AspNetCore.Mvc.ModelBinding.Validation;
-using System.ComponentModel.DataAnnotations;
+﻿using System.ComponentModel.DataAnnotations;
 
 namespace CollegeApp.Models
 {
     public class StudentDTO
     {
-        [ValidateNever]
         public int Id { get; set; }
-        [Required(ErrorMessage = "Student name is required.")]
-        //[StringLength(10, ErrorMessage = "Name should be 10 char long.")]
-        [RegularExpression("^[^0-9]*$", ErrorMessage = "The name must not contain any numbers.")]
-        public string StudentName { get; set; }
-        [Required(ErrorMessage = "Email is required.")]
+        [Required(ErrorMessage = "Enrollment Number is required.")]
+        [StringLength(100)]
+        public string Entollment_no { get; set; }
+        [Required]
+        [StringLength(100, ErrorMessage = "Name should be 100 char long.")]
+        public string Name { get; set; }
+
+        [Required]
+        [StringLength(100, ErrorMessage = "Fathers name should be 100 char long.")]
+        public string Fathers_name { get; set; }
+
+        [Required]
         [EmailAddress(ErrorMessage = "Please enter valid email address.")]
+        [StringLength(60)]
         public string Email { get; set; }
-        [Required(ErrorMessage = "Address is required.")]
-        [StringLength(200, ErrorMessage = "Address char is too long.")]
+
+        [Required]
+        [DataType(DataType.Date)]
+        public DateTime Date_of_birth { get; set; }
+
+        [Required]
+        [StringLength(10)]
+        public string Gender { get; set; }
+
+        [Required]
+        [StringLength(50)]
+        public string Category { get; set; }
+
+        [StringLength(400)]
+        [Required]
         public string Address { get; set; }
 
-        // [DateCheck]
-        // public DateTime AddimisonDate { get; set; }
+        [Required]
+        [DataType(DataType.DateTime)]
+        public DateTime Added_On { get; set; } = DateTime.Now;
 
     }
 }
