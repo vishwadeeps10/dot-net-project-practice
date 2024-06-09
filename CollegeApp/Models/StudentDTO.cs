@@ -8,6 +8,7 @@ namespace CollegeApp.Models
         [Required(ErrorMessage = "Enrollment Number is required.")]
         [StringLength(100)]
         public string Entollment_no { get; set; }
+
         [Required]
         [StringLength(100, ErrorMessage = "Name should be 100 char long.")]
         public string Name { get; set; }

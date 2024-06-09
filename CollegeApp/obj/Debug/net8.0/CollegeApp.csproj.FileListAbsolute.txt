@@ -5,6 +5,8 @@ C:\Users\vishwadeep.singh\source\repos\CollegeApp\CollegeApp\bin\Debug\net8.0\Co
 C:\Users\vishwadeep.singh\source\repos\CollegeApp\CollegeApp\bin\Debug\net8.0\CollegeApp.runtimeconfig.json
 C:\Users\vishwadeep.singh\source\repos\CollegeApp\CollegeApp\bin\Debug\net8.0\CollegeApp.dll
 C:\Users\vishwadeep.singh\source\repos\CollegeApp\CollegeApp\bin\Debug\net8.0\CollegeApp.pdb
+C:\Users\vishwadeep.singh\source\repos\CollegeApp\CollegeApp\bin\Debug\net8.0\AutoMapper.dll
+C:\Users\vishwadeep.singh\source\repos\CollegeApp\CollegeApp\bin\Debug\net8.0\AutoMapper.Extensions.Microsoft.DependencyInjection.dll
 C:\Users\vishwadeep.singh\source\repos\CollegeApp\CollegeApp\bin\Debug\net8.0\Azure.Core.dll
 C:\Users\vishwadeep.singh\source\repos\CollegeApp\CollegeApp\bin\Debug\net8.0\Azure.Identity.dll
 C:\Users\vishwadeep.singh\source\repos\CollegeApp\CollegeApp\bin\Debug\net8.0\Humanizer.dll
