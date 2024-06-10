@@ -5,7 +5,7 @@
 
         public int Id { get; set; }
 
-        public string Entollment_no { get; set; }
+        public string Enrollment_no { get; set; }
 
         public string Name { get; set; }
 
@@ -23,5 +23,7 @@
         public string Address { get; set; }
 
         public DateTime Added_On { get; set; }
+
+        public AdmissionDetails AdmissionDetails { get; set; }
     }
 }

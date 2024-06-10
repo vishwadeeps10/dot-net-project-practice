@@ -2,8 +2,8 @@
 using CollegeApp.data;
 using CollegeApp.data.Repository;
 using CollegeApp.Models;
-using Microsoft.AspNetCore.JsonPatch;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 
 namespace CollegeApp.Controllers
 {
@@ -13,11 +13,12 @@ namespace CollegeApp.Controllers
     {
         private readonly ILogger<StudentController> _logger;
         private readonly CollegeDbContext _dbContext;
-        public readonly ICollegeRepository<Student> _studentRepository;
+        //public readonly ICollegeRepository<Student> _studentRepository;
+        public readonly IStudentRepository _studentRepository;
         public readonly IMapper _mapper;
 
 
-        public StudentController(ILogger<StudentController> logger, CollegeDbContext dbContext, ICollegeRepository<Student> studentRepository, IMapper mapper)
+        public StudentController(ILogger<StudentController> logger, CollegeDbContext dbContext, IStudentRepository studentRepository, IMapper mapper)
         {
             _logger = logger;
             _dbContext = dbContext;
@@ -149,30 +150,17 @@ namespace CollegeApp.Controllers
         [Route("Create")]
         public async Task<ActionResult<StudentDTO>> CreateStudent([FromBody] StudentDTO model)
         {
-            // if (model.AddimisonDate < DateTime.Now) //here direcly added err msg to modelState. We can validate using custom attribute.
-            //{
-            //   ModelState.AddModelError("Addimison Error", "Addimision data should be same as today date.");
-            // return BadRequest(ModelState);
-            // }
-
-
-            //if(ModelState.IsValid)
-            //{
-            //    return BadRequest(ModelState.ToString());
-            //} This code is validating the input value if [ApiController] is not added.
             if (model == null)
-                return BadRequest();
+                return BadRequest("Student model is null.");
 
-            var emailExist = _dbContext.Students.Any(s => s.Email.Equals(model.Email));
 
+            var emailExist = await _dbContext.Students.AnyAsync(s => s.Email.Equals(model.Email));
             if (emailExist)
-                return BadRequest($"{model.Email} is already existed.Please try with another email.");
-
-
+                return BadRequest($"{model.Email} is already existed. Please try with another email.");
 
             var student = new Student
             {
-                Entollment_no = model.Entollment_no,
+                Enrollment_no = model.Enrollment_no,
                 Name = model.Name,
                 Fathers_name = model.Fathers_name,
                 Email = model.Email,
@@ -180,18 +168,41 @@ namespace CollegeApp.Controllers
                 Gender = model.Gender,
                 Category = model.Category,
                 Address = model.Address,
-                Added_On = DateTime.Now,
+                Added_On = DateTime.Now
             };
 
+
             var studentdb = await _studentRepository.CreateAsync(student);
-            //await _dbContext.Students.AddAsync(student);
-            //await _dbContext.SaveChangesAsync();
+
+
+            if (model.AdmissionDetails != null)
+            {
+
+                var admissionDetails = new AdmissionDetails
+                {
+                    Student_ID = studentdb.Id,
+                    Class_ID = model.AdmissionDetails.Class_ID,
+                    Previous_Class_ID = model.AdmissionDetails.Previous_Class_ID,
+                    Annual_Family_Income = model.AdmissionDetails.Annual_Family_Income,
+                    Cast_Certificate_ID = model.AdmissionDetails.Cast_Certificate_ID,
+                    Added_On = DateTime.Now,
+                    Added_By = "Admin"
+                };
+
+
+                await _dbContext.Addmision_Details.AddAsync(admissionDetails);
+                await _dbContext.SaveChangesAsync();
+            }
 
             model.Id = studentdb.Id;
+            if (model.AdmissionDetails != null)
+            {
+                // Assuming AdmissionDetailsDTO properties are the same as AdmissionDetails
+                model.AdmissionDetails.Id = studentdb.AdmissionDetails.Id;
+                model.AdmissionDetails.Student_ID = studentdb.Id;
+            }
 
             return CreatedAtRoute("getStuentDetailsById", new { id = model.Id }, model);
-            // return Ok(model);
-
         }
 
         [HttpPut]
@@ -204,72 +215,78 @@ namespace CollegeApp.Controllers
             if (model == null || model.Id <= 0)
                 return BadRequest();
 
-            var existingStudent = await _studentRepository.GetByIdAsync(student => student.Id == model.Id, true);
+            var existingStudent = await _studentRepository.GetByIdAsync(student => student.Id == model.Id);
             if (existingStudent == null)
             {
-                return NotFound("You are trying to update the value that are not present.");
+                return NotFound("You are trying to update the value that is not present.");
             }
 
-            //var newUpdate = new Student()
-            //{
-            //    Id = existingStudent.Id,
-            //    Entollment_no = existingStudent.Entollment_no,
-            //    Name = model.Name,
-            //    Fathers_name = model.Fathers_name,
-            //    Email = model.Email,
-            //    Gender = model.Gender,
-            //    Category = model.Category,
-            //    Address = model.Address
-            //};
-            var originalAddedOn = existingStudent.Added_On;
             _mapper.Map(model, existingStudent);
-            existingStudent.Added_On = originalAddedOn;
+
+            // Update AdmissionDetails if provided
+            if (model.AdmissionDetails != null)
+            {
+                if (existingStudent.AdmissionDetails == null)
+                {
+                    // If there are no existing admission details, create a new one
+                    existingStudent.AdmissionDetails = _mapper.Map<AdmissionDetails>(model.AdmissionDetails);
+                }
+                else
+                {
+                    // If admission details already exist, update them
+                    _mapper.Map(model.AdmissionDetails, existingStudent.AdmissionDetails);
+                }
+            }
+
+            // Ensure Added_On property remains unchanged
+            existingStudent.Added_On = existingStudent.Added_On;
+
             await _studentRepository.UpdateAsync(existingStudent);
             return Ok(true);
-
         }
 
 
-        [HttpPatch]
-        [ProducesResponseType(StatusCodes.Status204NoContent)]
-        [ProducesResponseType(StatusCodes.Status400BadRequest)]
-        [ProducesResponseType(StatusCodes.Status404NotFound)]
-        [Route("{id:int}/PartialUpdate")]
-        public ActionResult<StudentDTO> PartialUpdate(int id, [FromBody] JsonPatchDocument<StudentDTO> patchDocument)
-        {
-            if (patchDocument == null || id <= 0)
-                return BadRequest();
 
-            var existingStudent = _dbContext.Students.Where(s => s.Id == id).FirstOrDefault();
-            if (existingStudent == null)
-            {
-                return NotFound("You are trying to update the value that are not present.");
-            }
+        //[HttpPatch]
+        //[ProducesResponseType(StatusCodes.Status204NoContent)]
+        //[ProducesResponseType(StatusCodes.Status400BadRequest)]
+        //[ProducesResponseType(StatusCodes.Status404NotFound)]
+        //[Route("{id:int}/PartialUpdate")]
+        //public ActionResult<StudentDTO> PartialUpdate(int id, [FromBody] JsonPatchDocument<StudentDTO> patchDocument)
+        //{
+        //    if (patchDocument == null || id <= 0)
+        //        return BadRequest();
 
-            var studentDTO = new StudentDTO
-            {
+        //    var existingStudent = _dbContext.Students.Where(s => s.Id == id).FirstOrDefault();
+        //    if (existingStudent == null)
+        //    {
+        //        return NotFound("You are trying to update the value that are not present.");
+        //    }
 
-                Name = existingStudent.Name,
-                Address = existingStudent.Address,
-                Email = existingStudent.Email,
+        //    var studentDTO = new StudentDTO
+        //    {
 
-            };
-            patchDocument.ApplyTo(studentDTO, ModelState);
+        //        Name = existingStudent.Name,
+        //        Address = existingStudent.Address,
+        //        Email = existingStudent.Email,
 
-            if (!ModelState.IsValid)
-            {
-                return BadRequest(ModelState);
-            }
+        //    };
+        //    patchDocument.ApplyTo(studentDTO, ModelState);
 
-            existingStudent.Name = studentDTO.Name;
-            existingStudent.Address = studentDTO.Address;
-            existingStudent.Email = studentDTO.Email;
-            existingStudent.Address = studentDTO.Address;
+        //    if (!ModelState.IsValid)
+        //    {
+        //        return BadRequest(ModelState);
+        //    }
 
-            _dbContext.SaveChanges();
-            return NoContent();
+        //    existingStudent.Name = studentDTO.Name;
+        //    existingStudent.Address = studentDTO.Address;
+        //    existingStudent.Email = studentDTO.Email;
+        //    existingStudent.Address = studentDTO.Address;
 
-        }
+        //    _dbContext.SaveChanges();
+        //    return NoContent();
+
+        //}
 
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]

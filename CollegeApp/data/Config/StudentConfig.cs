@@ -12,7 +12,7 @@ namespace CollegeApp.data.Config
             builder.HasKey(x => x.Id);
             builder.Property(x => x.Id).UseIdentityColumn();
 
-            builder.Property(x => x.Entollment_no)
+            builder.Property(x => x.Enrollment_no)
                    .IsRequired()
                    .HasMaxLength(100);
 
@@ -41,6 +41,12 @@ namespace CollegeApp.data.Config
 
             builder.Property(x => x.Address)
                    .HasMaxLength(400);
+
+            builder.HasOne(s => s.AdmissionDetails)
+                   .WithOne(ad => ad.Student)
+                   .HasForeignKey<AdmissionDetails>(ad => ad.Student_ID)
+                   .HasConstraintName("FK_Student_ID");
+
         }
     }
 

@@ -11,11 +11,14 @@ namespace CollegeApp.data
         }
 
         public DbSet<Student> Students { get; set; }
+        public DbSet<AdmissionDetails> Addmision_Details { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             //StudentTable
             modelBuilder.ApplyConfiguration(new StudentConfig());
+            //student details table confing
+            modelBuilder.ApplyConfiguration(new AdmissionDetailsConfig());
         }
     }
 }

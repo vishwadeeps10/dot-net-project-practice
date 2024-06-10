@@ -7,7 +7,7 @@ namespace CollegeApp.Models
         public int Id { get; set; }
         [Required(ErrorMessage = "Enrollment Number is required.")]
         [StringLength(100)]
-        public string Entollment_no { get; set; }
+        public string Enrollment_no { get; set; }
 
         [Required]
         [StringLength(100, ErrorMessage = "Name should be 100 char long.")]
@@ -41,6 +41,8 @@ namespace CollegeApp.Models
         [Required]
         [DataType(DataType.DateTime)]
         public DateTime Added_On { get; set; } = DateTime.Now;
+
+        public AdmissionDetailsDTO AdmissionDetails { get; set; }
 
     }
 }

@@ -8,7 +8,14 @@ namespace CollegeApp.Configration
     {
         public AutoMapperConfig()
         {
-            CreateMap<Student, StudentDTO>().ReverseMap();
+            CreateMap<Student, StudentDTO>()
+              .ForMember(dest => dest.AdmissionDetails, opt => opt.MapFrom(src => src.AdmissionDetails));
+
+            CreateMap<AdmissionDetails, AdmissionDetailsDTO>()
+                .ForMember(dest => dest.Student_ID, opt => opt.MapFrom(src => src.Student_ID));
+
+            CreateMap<StudentDTO, Student>();
+            CreateMap<AdmissionDetailsDTO, AdmissionDetails>();
         }
     }
 }
