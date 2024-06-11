@@ -24,6 +24,8 @@
 
         public DateTime Added_On { get; set; }
 
-        public AdmissionDetails AdmissionDetails { get; set; }
+        public AdmissionDetails? AdmissionDetails { get; set; }
+
+        public StudentCasteCertificateDetails? StudentCasteCertificateDetails { get; set; }
     }
 }

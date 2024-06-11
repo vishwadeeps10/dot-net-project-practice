@@ -16,6 +16,6 @@
 
         public DateTime Added_On { get; set; } = DateTime.Now;
 
-        public string Added_By { get; set; }
+        public string? Added_By { get; set; } = "Admin";
     }
 }

@@ -44,5 +44,7 @@ namespace CollegeApp.Models
 
         public AdmissionDetailsDTO AdmissionDetails { get; set; }
 
+        public CasteCertificateDetailsDTO CasteCertificateDetails { get; set; }
+
     }
 }

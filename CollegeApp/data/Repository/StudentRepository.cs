@@ -17,25 +17,41 @@ namespace CollegeApp.data.Repository
 
         public override async Task<List<Student>> GetAllAsync()
         {
-            return await _dbContext.Students.Include(s => s.AdmissionDetails).ToListAsync();
+            return await _dbContext.Students
+                .Include(s => s.AdmissionDetails)
+                .Include(s => s.StudentCasteCertificateDetails)
+                .ToListAsync();
         }
 
         public override async Task<Student> GetByIdAsync(Expression<Func<Student, bool>> filter, bool noTracking = false)
         {
             if (noTracking)
             {
-                return await _dbContext.Students.Include(s => s.AdmissionDetails).AsNoTracking().Where(filter).FirstOrDefaultAsync();
+                return await _dbContext.Students
+                    .Include(s => s.AdmissionDetails)
+                    .Include(s => s.StudentCasteCertificateDetails)
+                    .AsNoTracking()
+                    .Where(filter)
+                    .FirstOrDefaultAsync();
             }
             else
             {
-                return await _dbContext.Students.Include(s => s.AdmissionDetails).Where(filter).FirstOrDefaultAsync();
+                return await _dbContext.Students
+                    .Include(s => s.AdmissionDetails)
+                    .Include(s => s.StudentCasteCertificateDetails)
+                    .Where(filter)
+                    .FirstOrDefaultAsync();
             }
         }
+
 
         public override async Task<Student> GetByNameAsync(Expression<Func<Student, bool>> filter)
         {
 
-            return await _dbContext.Students.Include(s => s.AdmissionDetails).Where(filter).FirstOrDefaultAsync();
+            return await _dbContext.Students
+                .Include(s => s.AdmissionDetails)
+                .Include(s => s.StudentCasteCertificateDetails)
+                .Where(filter).FirstOrDefaultAsync();
 
         }
 

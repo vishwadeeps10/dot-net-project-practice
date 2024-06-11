@@ -16,14 +16,17 @@ namespace CollegeApp.Controllers
         //public readonly ICollegeRepository<Student> _studentRepository;
         public readonly IStudentRepository _studentRepository;
         public readonly IMapper _mapper;
+        private readonly HttpClient _httpClient;
 
 
-        public StudentController(ILogger<StudentController> logger, CollegeDbContext dbContext, IStudentRepository studentRepository, IMapper mapper)
+
+        public StudentController(ILogger<StudentController> logger, CollegeDbContext dbContext, IStudentRepository studentRepository, IMapper mapper, IHttpClientFactory httpClientFactory)
         {
             _logger = logger;
             _dbContext = dbContext;
             _studentRepository = studentRepository;
             _mapper = mapper;
+            _httpClient = httpClientFactory.CreateClient("casteCertificateClient");
         }
 
         [HttpGet]
@@ -42,25 +45,6 @@ namespace CollegeApp.Controllers
             var students = await _studentRepository.GetAllAsync();
 
             var studentDTOs = _mapper.Map<List<StudentDTO>>(students);
-
-            //var students = await _dbContext.Students.Select(n => new StudentDTO()
-            //{
-            //    Id = n.Id,
-            //    Entollment_no = n.Entollment_no,
-            //    Name = n.Name,
-            //    Fathers_name = n.Fathers_name,
-            //    Email = n.Email,
-            //    Date_of_birth = n.Date_of_birth,
-            //    Gender = n.Gender,
-            //    Category = n.Category,
-            //    Address = n.Address,
-            //    Added_On = n.Added_On,
-
-            //}).ToListAsync();
-
-
-
-            // var students = await _studentRepository.GetAllAsync();
 
             return Ok(studentDTOs);
         }
@@ -86,27 +70,14 @@ namespace CollegeApp.Controllers
             }
 
             var studentDTO = _mapper.Map<StudentDTO>(student);
-
-            //var studentsDTO = new StudentDTO
-            //{
-            //    Id = student.Id,
-            //    Entollment_no = student.Entollment_no,
-            //    Name = student.Name,
-            //    Fathers_name = student.Fathers_name,
-            //    Email = student.Email,
-            //    Date_of_birth = student.Date_of_birth,
-            //    Gender = student.Gender,
-            //    Category = student.Category,
-            //    Address = student.Address,
-            //    Added_On = student.Added_On,
-
-            //};
             return Ok(studentDTO);
+
         }
-        [HttpGet]
+
         // [Route("{name:string}", Name = "getStuentDetailsByName")]
 
         //[Route("{name:alpha}", Name = "getStuentDetailsByName")] //alpha is used for alphabatical because string giving error
+        [HttpGet]
         [Route("getStuentByName")] //alpha is used for alphabatical because string giving error
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -126,20 +97,7 @@ namespace CollegeApp.Controllers
                 return NotFound($"Student with this id {name} is not found."); //404 - not found
             }
             var studentDTO = _mapper.Map<StudentDTO>(studentName);
-            //var studentsDTO = new StudentDTO
-            //{
-            //    Id = studentName.Id,
-            //    Entollment_no = studentName.Entollment_no,
-            //    Name = studentName.Name,
-            //    Fathers_name = studentName.Fathers_name,
-            //    Email = studentName.Email,
-            //    Date_of_birth = studentName.Date_of_birth,
-            //    Gender = studentName.Gender,
-            //    Category = studentName.Category,
-            //    Address = studentName.Address,
-            //    Added_On = studentName.Added_On,
 
-            //};
             return Ok(studentDTO);
         }
 
@@ -148,11 +106,11 @@ namespace CollegeApp.Controllers
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [HttpPost]
         [Route("Create")]
+        [HttpPost]
         public async Task<ActionResult<StudentDTO>> CreateStudent([FromBody] StudentDTO model)
         {
             if (model == null)
                 return BadRequest("Student model is null.");
-
 
             var emailExist = await _dbContext.Students.AnyAsync(s => s.Email.Equals(model.Email));
             if (emailExist)
@@ -171,13 +129,10 @@ namespace CollegeApp.Controllers
                 Added_On = DateTime.Now
             };
 
-
             var studentdb = await _studentRepository.CreateAsync(student);
-
 
             if (model.AdmissionDetails != null)
             {
-
                 var admissionDetails = new AdmissionDetails
                 {
                     Student_ID = studentdb.Id,
@@ -189,21 +144,34 @@ namespace CollegeApp.Controllers
                     Added_By = "Admin"
                 };
 
-
                 await _dbContext.Addmision_Details.AddAsync(admissionDetails);
                 await _dbContext.SaveChangesAsync();
             }
 
-            model.Id = studentdb.Id;
-            if (model.AdmissionDetails != null)
+            if (model.CasteCertificateDetails != null)
             {
-                // Assuming AdmissionDetailsDTO properties are the same as AdmissionDetails
-                model.AdmissionDetails.Id = studentdb.AdmissionDetails.Id;
-                model.AdmissionDetails.Student_ID = studentdb.Id;
+                var casteDetailsDto = new CasteCertificateDetailsDTO
+                {
+                    CasteCertiNo = model.CasteCertificateDetails.CasteCertiNo,
+                    CasteCertiUrl = model.CasteCertificateDetails.CasteCertiUrl,
+                    CasteCode = model.CasteCertificateDetails.CasteCode,
+                    StudentName = model.Name,
+                    RecievedOn = model.CasteCertificateDetails.RecievedOn,
+                    RecievedBy = model.CasteCertificateDetails.RecievedBy,
+                    StudentId = studentdb.Id
+                };
+
+                var response = await _httpClient.PostAsJsonAsync("api/StudentCasteCertificateDetails/Create", casteDetailsDto);
+
+                if (!response.IsSuccessStatusCode)
+                    return StatusCode((int)response.StatusCode, "Failed to create caste certificate details");
             }
+
+            model.Id = studentdb.Id;
 
             return CreatedAtRoute("getStuentDetailsById", new { id = model.Id }, model);
         }
+
 
         [HttpPut]
         [ProducesResponseType(StatusCodes.Status204NoContent)]
@@ -228,65 +196,43 @@ namespace CollegeApp.Controllers
             {
                 if (existingStudent.AdmissionDetails == null)
                 {
-                    // If there are no existing admission details, create a new one
                     existingStudent.AdmissionDetails = _mapper.Map<AdmissionDetails>(model.AdmissionDetails);
                 }
                 else
                 {
-                    // If admission details already exist, update them
                     _mapper.Map(model.AdmissionDetails, existingStudent.AdmissionDetails);
                 }
             }
 
-            // Ensure Added_On property remains unchanged
+
+
             existingStudent.Added_On = existingStudent.Added_On;
 
-            await _studentRepository.UpdateAsync(existingStudent);
+            bool flag = true;
+
+            if (model.CasteCertificateDetails != null)
+            {
+                var casteDetailsUpdateDto = _mapper.Map<CasteCertificateDetailsDTO>(model.CasteCertificateDetails);
+
+                var response = await _httpClient.PutAsJsonAsync("api/StudentCasteCertificateDetails/Update", casteDetailsUpdateDto);
+                if (!response.IsSuccessStatusCode)
+                {
+                    flag = false;
+                    return StatusCode((int)response.StatusCode, "Failed to Update caste certificate details");
+                }
+            }
+            if (!flag)
+            {
+                BadRequest("Caste certificate is not updated.");
+            }
+            else
+            {
+                await _studentRepository.UpdateAsync(existingStudent);
+            }
+
             return Ok(true);
         }
 
-
-
-        //[HttpPatch]
-        //[ProducesResponseType(StatusCodes.Status204NoContent)]
-        //[ProducesResponseType(StatusCodes.Status400BadRequest)]
-        //[ProducesResponseType(StatusCodes.Status404NotFound)]
-        //[Route("{id:int}/PartialUpdate")]
-        //public ActionResult<StudentDTO> PartialUpdate(int id, [FromBody] JsonPatchDocument<StudentDTO> patchDocument)
-        //{
-        //    if (patchDocument == null || id <= 0)
-        //        return BadRequest();
-
-        //    var existingStudent = _dbContext.Students.Where(s => s.Id == id).FirstOrDefault();
-        //    if (existingStudent == null)
-        //    {
-        //        return NotFound("You are trying to update the value that are not present.");
-        //    }
-
-        //    var studentDTO = new StudentDTO
-        //    {
-
-        //        Name = existingStudent.Name,
-        //        Address = existingStudent.Address,
-        //        Email = existingStudent.Email,
-
-        //    };
-        //    patchDocument.ApplyTo(studentDTO, ModelState);
-
-        //    if (!ModelState.IsValid)
-        //    {
-        //        return BadRequest(ModelState);
-        //    }
-
-        //    existingStudent.Name = studentDTO.Name;
-        //    existingStudent.Address = studentDTO.Address;
-        //    existingStudent.Email = studentDTO.Email;
-        //    existingStudent.Address = studentDTO.Address;
-
-        //    _dbContext.SaveChanges();
-        //    return NoContent();
-
-        //}
 
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -295,7 +241,7 @@ namespace CollegeApp.Controllers
         [HttpDelete]
         [Route("Delete/{id}", Name = "deleteStudentById")]
         //[Route("{id:min(1):max(100)}", Name = "deleteStudentById")] we can add constaint as well
-        public async Task<ActionResult<string>> DeleteStudent(int id)
+        public async Task<ActionResult<bool>> DeleteStudent(int id)
         {
             if (id <= 0)
             {

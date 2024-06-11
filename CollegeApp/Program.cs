@@ -12,8 +12,17 @@ builder.Services.AddDbContext<CollegeDbContext>(options =>
                 sqlServerOptions => sqlServerOptions.EnableRetryOnFailure()
     ));
 
+builder.Services.AddHttpClient("casteCertificateClient", client =>
+{
+    client.BaseAddress = new Uri("https://localhost:7154/");
+})
+.ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler
+{
+    ServerCertificateCustomValidationCallback = (message, cert, chain, errors) => { return true; }
+});
 builder.Services.AddAutoMapper(typeof(AutoMapperConfig));
 builder.Services.AddScoped<IStudentRepository, StudentRepository>();
+builder.Services.AddScoped<IStudentCasteCertificateDetailsRepository, StudentCasteCertificateDetailsRepository>();
 builder.Services.AddScoped(typeof(ICollegeRepository<>), typeof(CollegeRepository<>));
 
 builder.Services.AddControllers();

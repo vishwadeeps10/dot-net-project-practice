@@ -47,6 +47,11 @@ namespace CollegeApp.data.Config
                    .HasForeignKey<AdmissionDetails>(ad => ad.Student_ID)
                    .HasConstraintName("FK_Student_ID");
 
+            builder.HasOne(s => s.StudentCasteCertificateDetails)
+              .WithOne(sccd => sccd.Student)
+              .HasForeignKey<StudentCasteCertificateDetails>(sccd => sccd.StudentId)
+              .OnDelete(DeleteBehavior.Cascade);
+
         }
     }
 
