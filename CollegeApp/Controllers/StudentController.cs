@@ -38,15 +38,30 @@ namespace CollegeApp.Controllers
 
         public async Task<ActionResult<IEnumerable<StudentDTO>>> GetStudent()
         {
-            if (!_dbContext.Students.Any())
+            try
             {
-                return NotFound("Data is not available");
+                if (!_dbContext.Students.Any())
+                {
+                    return NotFound("Data is not available");
+                }
+
+                var students = await _studentRepository.GetAllAsync();
+
+                if (students == null || !students.Any())
+                {
+                    return NotFound("No students found");
+                }
+
+                var studentDTOs = _mapper.Map<List<StudentDTO>>(students);
+
+                return Ok(studentDTOs);
             }
-            var students = await _studentRepository.GetAllAsync();
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "An error occurred while fetching students");
 
-            var studentDTOs = _mapper.Map<List<StudentDTO>>(students);
-
-            return Ok(studentDTOs);
+                return StatusCode(500, "Internal server error. Please try again later.");
+            }
         }
 
         [HttpGet("{id:int}", Name = "getStuentDetailsById")]
@@ -57,21 +72,29 @@ namespace CollegeApp.Controllers
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public async Task<ActionResult<StudentDTO>> GetStudentById(int id)
         {
-
-            var student = await _studentRepository.GetByIdAsync(s => s.Id == id);
-
-            if (id <= 0)
+            try
             {
-                return BadRequest($"You are trying to fetching the data with id {id} that are not in our scope."); //400
+                if (id <= 0)
+                {
+                    return BadRequest($"You are trying to fetch the data with id {id} that is not in our scope.");
+                }
+
+                var student = await _studentRepository.GetByIdAsync(s => s.Id == id);
+
+                if (student == null)
+                {
+                    return NotFound($"Student with this id {id} is not found.");
+                }
+
+                var studentDTO = _mapper.Map<StudentDTO>(student);
+                return Ok(studentDTO);
             }
-            if (student == null)
+            catch (Exception ex)
             {
-                return NotFound($"Student with this id {id} is not found."); //404 - not found
+                _logger.LogError(ex, $"An error occurred while fetching student with id {id}");
+
+                return StatusCode(500, "Internal server error. Please try again later.");
             }
-
-            var studentDTO = _mapper.Map<StudentDTO>(student);
-            return Ok(studentDTO);
-
         }
 
         // [Route("{name:string}", Name = "getStuentDetailsByName")]
@@ -85,21 +108,31 @@ namespace CollegeApp.Controllers
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public async Task<ActionResult<StudentDTO>> GetStudentByName([FromQuery] string name)
         {
-
-            var studentName = await _studentRepository.GetByNameAsync(student => student.Name.Replace(" ", "").ToLower() == name.Replace(" ", "").ToLower());
-
-            if (string.IsNullOrEmpty(name))
+            try
             {
-                return BadRequest($"You are trying to fetching the data with id {name} that are not in our scope."); //400
-            }
-            if (studentName == null)
-            {
-                return NotFound($"Student with this id {name} is not found."); //404 - not found
-            }
-            var studentDTO = _mapper.Map<StudentDTO>(studentName);
+                if (string.IsNullOrEmpty(name))
+                {
+                    return BadRequest($"You are trying to fetch the data with name {name} that is not in our scope.");
+                }
 
-            return Ok(studentDTO);
+                var studentName = await _studentRepository.GetByNameAsync(student => student.Name.Replace(" ", "").ToLower() == name.Replace(" ", "").ToLower());
+
+                if (studentName == null)
+                {
+                    return NotFound($"Student with the name {name} is not found.");
+                }
+
+                var studentDTO = _mapper.Map<StudentDTO>(studentName);
+                return Ok(studentDTO);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, $"An error occurred while fetching student with the name {name}");
+
+                return StatusCode(500, "Internal server error. Please try again later.");
+            }
         }
+
 
 
         [ProducesResponseType(StatusCodes.Status201Created)]
@@ -109,68 +142,79 @@ namespace CollegeApp.Controllers
         [HttpPost]
         public async Task<ActionResult<StudentDTO>> CreateStudent([FromBody] StudentDTO model)
         {
-            if (model == null)
-                return BadRequest("Student model is null.");
-
-            var emailExist = await _dbContext.Students.AnyAsync(s => s.Email.Equals(model.Email));
-            if (emailExist)
-                return BadRequest($"{model.Email} is already existed. Please try with another email.");
-
-            var student = new Student
+            try
             {
-                Enrollment_no = model.Enrollment_no,
-                Name = model.Name,
-                Fathers_name = model.Fathers_name,
-                Email = model.Email,
-                Date_of_birth = model.Date_of_birth,
-                Gender = model.Gender,
-                Category = model.Category,
-                Address = model.Address,
-                Added_On = DateTime.Now
-            };
+                if (model == null)
+                    return BadRequest("Student model is null.");
 
-            var studentdb = await _studentRepository.CreateAsync(student);
+                var emailExist = await _dbContext.Students.AnyAsync(s => s.Email.Equals(model.Email));
+                if (emailExist)
+                    return BadRequest($"{model.Email} is already existed. Please try with another email.");
 
-            if (model.AdmissionDetails != null)
-            {
-                var admissionDetails = new AdmissionDetails
+                var student = new Student
                 {
-                    Student_ID = studentdb.Id,
-                    Class_ID = model.AdmissionDetails.Class_ID,
-                    Previous_Class_ID = model.AdmissionDetails.Previous_Class_ID,
-                    Annual_Family_Income = model.AdmissionDetails.Annual_Family_Income,
-                    Cast_Certificate_ID = model.AdmissionDetails.Cast_Certificate_ID,
-                    Added_On = DateTime.Now,
-                    Added_By = "Admin"
+                    Enrollment_no = model.Enrollment_no,
+                    Name = model.Name,
+                    Fathers_name = model.Fathers_name,
+                    Email = model.Email,
+                    Date_of_birth = model.Date_of_birth,
+                    Gender = model.Gender,
+                    Category = model.Category,
+                    Address = model.Address,
+                    Added_On = DateTime.Now
                 };
 
-                await _dbContext.Addmision_Details.AddAsync(admissionDetails);
-                await _dbContext.SaveChangesAsync();
-            }
+                var studentdb = await _studentRepository.CreateAsync(student);
 
-            if (model.CasteCertificateDetails != null)
-            {
-                var casteDetailsDto = new CasteCertificateDetailsDTO
+                if (model.AdmissionDetails != null)
                 {
-                    CasteCertiNo = model.CasteCertificateDetails.CasteCertiNo,
-                    CasteCertiUrl = model.CasteCertificateDetails.CasteCertiUrl,
-                    CasteCode = model.CasteCertificateDetails.CasteCode,
-                    StudentName = model.Name,
-                    RecievedOn = model.CasteCertificateDetails.RecievedOn,
-                    RecievedBy = model.CasteCertificateDetails.RecievedBy,
-                    StudentId = studentdb.Id
-                };
+                    var admissionDetails = new AdmissionDetails
+                    {
+                        Student_ID = studentdb.Id,
+                        Class_ID = model.AdmissionDetails.Class_ID,
+                        Previous_Class_ID = model.AdmissionDetails.Previous_Class_ID,
+                        Annual_Family_Income = model.AdmissionDetails.Annual_Family_Income,
+                        Cast_Certificate_ID = model.AdmissionDetails.Cast_Certificate_ID,
+                        Added_On = DateTime.Now,
+                        Added_By = "Admin"
+                    };
 
-                var response = await _httpClient.PostAsJsonAsync("api/StudentCasteCertificateDetails/Create", casteDetailsDto);
+                    await _dbContext.Addmision_Details.AddAsync(admissionDetails);
+                    await _dbContext.SaveChangesAsync();
+                }
 
-                if (!response.IsSuccessStatusCode)
-                    return StatusCode((int)response.StatusCode, "Failed to create caste certificate details");
+                if (model.CasteCertificateDetails != null)
+                {
+                    var casteDetailsDto = new CasteCertificateDetailsDTO
+                    {
+                        CasteCertiNo = model.CasteCertificateDetails.CasteCertiNo,
+                        CasteCertiUrl = model.CasteCertificateDetails.CasteCertiUrl,
+                        CasteCode = model.CasteCertificateDetails.CasteCode,
+                        StudentName = model.Name,
+                        RecievedOn = model.CasteCertificateDetails.RecievedOn,
+                        RecievedBy = model.CasteCertificateDetails.RecievedBy,
+                        StudentId = studentdb.Id
+                    };
+
+                    var response = await _httpClient.PostAsJsonAsync("api/StudentCasteCertificateDetails/Create", casteDetailsDto);
+
+                    if (!response.IsSuccessStatusCode)
+                        return StatusCode((int)response.StatusCode, "Failed to create caste certificate details");
+                }
+
+                model.Id = studentdb.Id;
+
+                return CreatedAtRoute("getStuentDetailsById", new { id = model.Id }, model);
             }
+            catch (Exception ex)
+            {
 
-            model.Id = studentdb.Id;
+                _logger.LogError(ex, "An error occurred while creating the student.");
 
-            return CreatedAtRoute("getStuentDetailsById", new { id = model.Id }, model);
+                return StatusCode(500, "Internal server error. Please try again later.");
+            }
         }
+
 
 
         [HttpPut]
@@ -180,58 +224,68 @@ namespace CollegeApp.Controllers
         [Route("Update")]
         public async Task<ActionResult<StudentDTO>> UpdateStudent([FromBody] StudentDTO model)
         {
-            if (model == null || model.Id <= 0)
-                return BadRequest();
-
-            var existingStudent = await _studentRepository.GetByIdAsync(student => student.Id == model.Id);
-            if (existingStudent == null)
+            try
             {
-                return NotFound("You are trying to update the value that is not present.");
-            }
+                if (model == null || model.Id <= 0)
+                    return BadRequest();
 
-            _mapper.Map(model, existingStudent);
-
-            // Update AdmissionDetails if provided
-            if (model.AdmissionDetails != null)
-            {
-                if (existingStudent.AdmissionDetails == null)
+                var existingStudent = await _studentRepository.GetByIdAsync(student => student.Id == model.Id);
+                if (existingStudent == null)
                 {
-                    existingStudent.AdmissionDetails = _mapper.Map<AdmissionDetails>(model.AdmissionDetails);
+                    return NotFound("You are trying to update the value that is not present.");
+                }
+
+                _mapper.Map(model, existingStudent);
+
+                // Update AdmissionDetails if provided
+                if (model.AdmissionDetails != null)
+                {
+                    if (existingStudent.AdmissionDetails == null)
+                    {
+                        existingStudent.AdmissionDetails = _mapper.Map<AdmissionDetails>(model.AdmissionDetails);
+                    }
+                    else
+                    {
+                        _mapper.Map(model.AdmissionDetails, existingStudent.AdmissionDetails);
+                    }
+                }
+
+                existingStudent.Added_On = existingStudent.Added_On;
+
+                bool flag = true;
+
+                if (model.CasteCertificateDetails != null)
+                {
+                    var casteDetailsUpdateDto = _mapper.Map<CasteCertificateDetailsDTO>(model.CasteCertificateDetails);
+
+                    var response = await _httpClient.PutAsJsonAsync("api/StudentCasteCertificateDetails/Update", casteDetailsUpdateDto);
+                    if (!response.IsSuccessStatusCode)
+                    {
+                        flag = false;
+                        return StatusCode((int)response.StatusCode, "Failed to update caste certificate details");
+                    }
+                }
+
+                if (!flag)
+                {
+                    return BadRequest("Caste certificate is not updated.");
                 }
                 else
                 {
-                    _mapper.Map(model.AdmissionDetails, existingStudent.AdmissionDetails);
+                    await _studentRepository.UpdateAsync(existingStudent);
                 }
+
+                return Ok(true);
             }
-
-
-
-            existingStudent.Added_On = existingStudent.Added_On;
-
-            bool flag = true;
-
-            if (model.CasteCertificateDetails != null)
+            catch (Exception ex)
             {
-                var casteDetailsUpdateDto = _mapper.Map<CasteCertificateDetailsDTO>(model.CasteCertificateDetails);
 
-                var response = await _httpClient.PutAsJsonAsync("api/StudentCasteCertificateDetails/Update", casteDetailsUpdateDto);
-                if (!response.IsSuccessStatusCode)
-                {
-                    flag = false;
-                    return StatusCode((int)response.StatusCode, "Failed to Update caste certificate details");
-                }
-            }
-            if (!flag)
-            {
-                BadRequest("Caste certificate is not updated.");
-            }
-            else
-            {
-                await _studentRepository.UpdateAsync(existingStudent);
-            }
+                _logger.LogError(ex, "An error occurred while updating the student.");
 
-            return Ok(true);
+                return StatusCode(500, "Internal server error. Please try again later.");
+            }
         }
+
 
 
         [ProducesResponseType(StatusCodes.Status200OK)]
@@ -243,23 +297,32 @@ namespace CollegeApp.Controllers
         //[Route("{id:min(1):max(100)}", Name = "deleteStudentById")] we can add constaint as well
         public async Task<ActionResult<bool>> DeleteStudent(int id)
         {
-            if (id <= 0)
+            try
             {
-                return BadRequest();
-            }
-            var deleteStudent = await _studentRepository.GetByIdAsync(s => s.Id == id);
+                if (id <= 0)
+                {
+                    return BadRequest();
+                }
+                var deleteStudent = await _studentRepository.GetByIdAsync(s => s.Id == id);
 
-            if (deleteStudent == null)
-            {
-                return NotFound($"Student with this id {id} is not found."); //404 - not found
-            }
+                if (deleteStudent == null)
+                {
+                    return NotFound($"Student with this id {id} is not found."); //404 - not found
+                }
 
-            if (id <= 0)
-            {
-                return BadRequest($"You are trying to delete the data with id {id} that are not in our scope."); //400
+                if (id <= 0)
+                {
+                    return BadRequest($"You are trying to delete the data with id {id} that are not in our scope."); //400
+                }
+                await _studentRepository.DeleteByIdasync(deleteStudent);
+                return Ok(true);
             }
-            await _studentRepository.DeleteByIdasync(deleteStudent);
-            return Ok(true);
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "An error occurred while deleting the student.");
+
+                return StatusCode(500, "Internal server error. Please try again later.");
+            }
         }
     }
 }
