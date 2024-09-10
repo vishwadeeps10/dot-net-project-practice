@@ -4,6 +4,8 @@ using CollegeApp.data.Repository;
 using CollegeApp.Models;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Distributed;
+using System.Text.Json;
 
 namespace CollegeApp.Controllers
 {
@@ -17,16 +19,24 @@ namespace CollegeApp.Controllers
         public readonly IStudentRepository _studentRepository;
         public readonly IMapper _mapper;
         private readonly HttpClient _httpClient;
+        private readonly ICache _cacheService;
 
 
 
-        public StudentController(ILogger<StudentController> logger, CollegeDbContext dbContext, IStudentRepository studentRepository, IMapper mapper, IHttpClientFactory httpClientFactory)
+        public StudentController(ILogger<StudentController> logger, 
+            CollegeDbContext dbContext, 
+            IStudentRepository studentRepository, 
+            IMapper mapper, 
+            IHttpClientFactory httpClientFactory,
+            ICache cacheService
+            )
         {
             _logger = logger;
             _dbContext = dbContext;
             _studentRepository = studentRepository;
             _mapper = mapper;
             _httpClient = httpClientFactory.CreateClient("casteCertificateClient");
+            _cacheService = cacheService;
         }
 
         [HttpGet]
@@ -40,6 +50,16 @@ namespace CollegeApp.Controllers
         {
             try
             {
+
+                string cacheKey = "all_data";
+
+                var cacheItem = await _cacheService.GetData<List<StudentDTO>>(cacheKey);
+
+                if (cacheItem != null) 
+                { 
+                    return Ok(cacheItem);
+                }
+
                 if (!_dbContext.Students.Any())
                 {
                     return NotFound("Data is not available");
@@ -54,13 +74,16 @@ namespace CollegeApp.Controllers
 
                 var studentDTOs = _mapper.Map<List<StudentDTO>>(students);
 
+                await _cacheService.SetData<List<StudentDTO>>(cacheKey, studentDTOs, TimeSpan.FromMinutes(30));
+
                 return Ok(studentDTOs);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "An error occurred while fetching students");
+                _logger.LogError(ex, $"{DateTime.Now}:- An error occurred while fetching students: {ex.InnerException} ErrorMessage: {ex.Message}");
 
-                return StatusCode(500, "Internal server error. Please try again later.");
+
+                return StatusCode(500, $"{DateTime.Now}:- Internal server error. Please try again later.");
             }
         }
 
@@ -79,14 +102,24 @@ namespace CollegeApp.Controllers
                     return BadRequest($"You are trying to fetch the data with id {id} that is not in our scope.");
                 }
 
+                string cacheKey = $"Item_{id}";
+                var cachedItem = await _cacheService.GetData<StudentDTO>(cacheKey);
+
+                if (cachedItem != null)
+                {
+                    return Ok(cachedItem);
+                }
+
                 var student = await _studentRepository.GetByIdAsync(s => s.Id == id);
 
                 if (student == null)
                 {
                     return NotFound($"Student with this id {id} is not found.");
                 }
-
                 var studentDTO = _mapper.Map<StudentDTO>(student);
+
+                await _cacheService.SetData(cacheKey, studentDTO, TimeSpan.FromMinutes(30));
+
                 return Ok(studentDTO);
             }
             catch (Exception ex)

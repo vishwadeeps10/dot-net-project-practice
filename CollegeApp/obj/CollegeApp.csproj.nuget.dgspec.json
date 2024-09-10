@@ -1,20 +1,20 @@
 {
   "format": 1,
   "restore": {
-    "C:\\Users\\vishwadeep.singh\\source\\repos\\CollegeApp\\CollegeApp\\CollegeApp.csproj": {}
+    "D:\\Redis app\\dot-net-project-practice\\CollegeApp\\CollegeApp.csproj": {}
   },
   "projects": {
-    "C:\\Users\\vishwadeep.singh\\source\\repos\\CollegeApp\\CollegeApp\\CollegeApp.csproj": {
+    "D:\\Redis app\\dot-net-project-practice\\CollegeApp\\CollegeApp.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "C:\\Users\\vishwadeep.singh\\source\\repos\\CollegeApp\\CollegeApp\\CollegeApp.csproj",
+        "projectUniqueName": "D:\\Redis app\\dot-net-project-practice\\CollegeApp\\CollegeApp.csproj",
         "projectName": "CollegeApp",
-        "projectPath": "C:\\Users\\vishwadeep.singh\\source\\repos\\CollegeApp\\CollegeApp\\CollegeApp.csproj",
-        "packagesPath": "C:\\Users\\vishwadeep.singh\\.nuget\\packages\\",
-        "outputPath": "C:\\Users\\vishwadeep.singh\\source\\repos\\CollegeApp\\CollegeApp\\obj\\",
+        "projectPath": "D:\\Redis app\\dot-net-project-practice\\CollegeApp\\CollegeApp.csproj",
+        "packagesPath": "C:\\Users\\VISHW\\.nuget\\packages\\",
+        "outputPath": "D:\\Redis app\\dot-net-project-practice\\CollegeApp\\obj\\",
         "projectStyle": "PackageReference",
         "configFilePaths": [
-          "C:\\Users\\vishwadeep.singh\\AppData\\Roaming\\NuGet\\NuGet.Config",
+          "C:\\Users\\VISHW\\AppData\\Roaming\\NuGet\\NuGet.Config",
           "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.Offline.config"
         ],
         "originalTargetFrameworks": [
@@ -76,6 +76,14 @@
               "target": "Package",
               "version": "[8.0.6, )"
             },
+            "Microsoft.Extensions.Caching.StackExchangeRedis": {
+              "target": "Package",
+              "version": "[8.0.8, )"
+            },
+            "StackExchange.Redis": {
+              "target": "Package",
+              "version": "[2.8.12, )"
+            },
             "Swashbuckle.AspNetCore": {
               "target": "Package",
               "version": "[6.6.2, )"
@@ -100,7 +108,7 @@
               "privateAssets": "all"
             }
           },
-          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\8.0.300/PortableRuntimeIdentifierGraph.json"
+          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\8.0.400/PortableRuntimeIdentifierGraph.json"
         }
       }
     }

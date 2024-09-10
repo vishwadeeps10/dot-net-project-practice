@@ -2,6 +2,9 @@ using CollegeApp.Configration;
 using CollegeApp.data;
 using CollegeApp.data.Repository;
 using Microsoft.EntityFrameworkCore;
+using StackExchange.Redis;
+using Microsoft.Extensions.Caching.Distributed;
+using CollegeApp.data.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -20,10 +23,18 @@ builder.Services.AddHttpClient("casteCertificateClient", client =>
 {
     ServerCertificateCustomValidationCallback = (message, cert, chain, errors) => { return true; }
 });
+
 builder.Services.AddAutoMapper(typeof(AutoMapperConfig));
 builder.Services.AddScoped<IStudentRepository, StudentRepository>();
 builder.Services.AddScoped<IStudentCasteCertificateDetailsRepository, StudentCasteCertificateDetailsRepository>();
 builder.Services.AddScoped(typeof(ICollegeRepository<>), typeof(CollegeRepository<>));
+builder.Services.AddScoped<ICache, RedisCacheService>();
+
+builder.Services.AddStackExchangeRedisCache(options =>
+{
+    options.Configuration = builder.Configuration["RedisCacheSettings:ConnectionString"];
+    //options.InstanceName = "SampleInstance"; // Optional: Prefix for Redis keys
+});
 
 builder.Services.AddControllers();
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
