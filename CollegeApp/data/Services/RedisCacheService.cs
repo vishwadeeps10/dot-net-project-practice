@@ -38,5 +38,12 @@ namespace CollegeApp.data.Services
 
         await _cache.SetStringAsync(key, serializedData, options);
     }
+
+        public async Task RemoveData(string key) 
+        {
+            await _cache.RemoveAsync(key);
+            _logger.LogInformation($"Cache removed for key: {key}");
+        }
+
     }
 }

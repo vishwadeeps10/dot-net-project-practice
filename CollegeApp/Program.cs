@@ -29,6 +29,12 @@ builder.Services.AddScoped<IStudentRepository, StudentRepository>();
 builder.Services.AddScoped<IStudentCasteCertificateDetailsRepository, StudentCasteCertificateDetailsRepository>();
 builder.Services.AddScoped(typeof(ICollegeRepository<>), typeof(CollegeRepository<>));
 builder.Services.AddScoped<ICache, RedisCacheService>();
+builder.Services.AddControllers()
+    .AddJsonOptions(options =>
+    {
+        options.JsonSerializerOptions.ReferenceHandler = System.Text.Json.Serialization.ReferenceHandler.Preserve;
+        options.JsonSerializerOptions.MaxDepth = 64; // Optional, 64 is the default
+    });
 
 builder.Services.AddStackExchangeRedisCache(options =>
 {

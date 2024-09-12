@@ -51,8 +51,8 @@ namespace CollegeApp.Controllers
             var entity = _mapper.Map<StudentCasteCertificateDetails>(model);
             await _CertificateRepository.CreateAsync(entity);
 
-            model.Id = entity.StudentId;
-            CreatedAtRoute("getCertificateDetailsByStudentId", new { StudentID = model.Id }, model);
+            model.StudentId = entity.StudentId;
+            CreatedAtRoute("getCertificateDetailsByStudentId", new { StudentID = model.StudentId }, model);
             return Ok(true);
         }
 

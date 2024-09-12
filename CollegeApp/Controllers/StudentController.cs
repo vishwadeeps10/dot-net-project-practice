@@ -20,6 +20,7 @@ namespace CollegeApp.Controllers
         public readonly IMapper _mapper;
         private readonly HttpClient _httpClient;
         private readonly ICache _cacheService;
+        string allDataCacheKey = "all_data";
 
 
 
@@ -51,9 +52,9 @@ namespace CollegeApp.Controllers
             try
             {
 
-                string cacheKey = "all_data";
+                //string cacheKey = "all_data";
 
-                var cacheItem = await _cacheService.GetData<List<StudentDTO>>(cacheKey);
+                var cacheItem = await _cacheService.GetData<List<StudentDTO>>(allDataCacheKey);
 
                 if (cacheItem != null) 
                 { 
@@ -74,7 +75,7 @@ namespace CollegeApp.Controllers
 
                 var studentDTOs = _mapper.Map<List<StudentDTO>>(students);
 
-                await _cacheService.SetData<List<StudentDTO>>(cacheKey, studentDTOs, TimeSpan.FromMinutes(30));
+                await _cacheService.SetData<List<StudentDTO>>(allDataCacheKey, studentDTOs, TimeSpan.FromMinutes(30));
 
                 return Ok(studentDTOs);
             }
@@ -236,6 +237,7 @@ namespace CollegeApp.Controllers
                 }
 
                 model.Id = studentdb.Id;
+                await _cacheService.RemoveData(allDataCacheKey);
 
                 return CreatedAtRoute("getStuentDetailsById", new { id = model.Id }, model);
             }
@@ -259,6 +261,7 @@ namespace CollegeApp.Controllers
         {
             try
             {
+                string cacheKey = $"Item_{model.Id}";
                 if (model == null || model.Id <= 0)
                     return BadRequest();
 
@@ -305,6 +308,8 @@ namespace CollegeApp.Controllers
                 }
                 else
                 {
+                    await _cacheService.RemoveData(cacheKey);
+                    await _cacheService.RemoveData(allDataCacheKey);
                     await _studentRepository.UpdateAsync(existingStudent);
                 }
 
@@ -321,6 +326,8 @@ namespace CollegeApp.Controllers
 
 
 
+
+
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -332,6 +339,7 @@ namespace CollegeApp.Controllers
         {
             try
             {
+
                 if (id <= 0)
                 {
                     return BadRequest();
@@ -346,7 +354,20 @@ namespace CollegeApp.Controllers
                 if (id <= 0)
                 {
                     return BadRequest($"You are trying to delete the data with id {id} that are not in our scope."); //400
+                
+               }
+
+                string deleteKey = $"Item_{id}";
+
+                var cachedItem = await _cacheService.GetData<StudentDTO>(deleteKey);
+
+                if (cachedItem != null)
+                {
+                    await _cacheService.RemoveData(deleteKey);
+                    await _cacheService.RemoveData(allDataCacheKey);
+
                 }
+
                 await _studentRepository.DeleteByIdasync(deleteStudent);
                 return Ok(true);
             }
